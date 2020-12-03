@@ -9,6 +9,8 @@ import aiogram
 import asyncio
 import json
 
+
+
 bot = aiogram.Bot(token =  config.API_TOKEN,
                   parse_mode = aiogram.types.ParseMode.HTML)
 loop = asyncio.get_event_loop()
@@ -78,7 +80,8 @@ def dict_to_str(_lst):
     return_string = ""
     for page in _lst:
         for dict in page:
-            return_string = return_string + dict["url"] + ";" + dict["title"] + ";" + dict["artist"] + ";" + dict["duration"] + ";" + dict["image"] + ";"
+            
+            return_string = return_string + str(dict["url"]) + ";" + str(dict["title"]) + ";" + str(dict["artist"]) + ";" + str(dict["duration"]) + ";" + str(dict["image"]) + ";"
             return_string = return_string + "|"
     return return_string
 
@@ -214,15 +217,32 @@ async def select_sound(call: aiogram.types.CallbackQuery):
     urls = string_to_list(dbWorker.get_param(call.message.chat.id, 'URLS'))
 
     song = SongsDownloader().download_song(  urls[page][song_num])
-    duration = with_form[page][song_num]["duration"]
+    _duration = with_form[page][song_num]["duration"]
+
+
+    slen = len(song) 
+
+    with open('test.mp3', 'w') as write_users:
+        write_users.write(song)
+    bitr = slen / get_duration(_duration)
+
+    
+   
 
     keyb =  keyboards.Keyboards().like_unlike_keyboard(  dbWorker.get_param(call.message.chat.id, 'HEARTS_BUTTONS'))
     msg = await bot.send_audio(call.message.chat.id, audio = song, title = f"{name} - {song_name}",
-                               performer = song_name,
-                               caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
+                               performer = song_name, duration = 0,
+                               caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>   bitrait = ', reply_markup = keyb)
 
 
-            
+def get_duration(_duration):
+    lst = _duration.split(":")
+    hours = int(lst[0]) * 3600
+    min = int(lst[1]) * 60
+    sec = int(lst[2])
+    duration = (hours + min + sec)
+    return duration
+
 #################_____________Отредактировано////////
 @dp.callback_query_handler(lambda call: call.data in ["like", "unlike"])
 async def like_or_unlike(call: aiogram.types.CallbackQuery):
@@ -231,7 +251,7 @@ async def like_or_unlike(call: aiogram.types.CallbackQuery):
     if call.data == "like":
         await bot.answer_callback_query(call.id,  messages.add_to_favourite[user_lang])
         dbWorker.add_new_favorites(call.message.chat.id, call.message.audio.title, call.message.audio.file_id)
-        clear_lsts()        
+        clear_lsts(call.message.chat.id)        
         return
 
     elif call.data == "unlike":
@@ -241,14 +261,14 @@ async def like_or_unlike(call: aiogram.types.CallbackQuery):
                 if key == call.message.audio.title:
                     await bot.answer_callback_query(call.id,  messages.del_from_favourite[user_lang])
                     dbWorker.rm_from_favorites(item[key])                    
-                    clear_lsts()
+                    clear_lsts(call.message.chat.id )
                     return
 
-def clear_lsts():
-    dbWorker.set_last_list(call.message.chat.id, "")
-    dbWorker.set_last_urls_list(call.message.chat.id, "")
-    dbWorker.set_urls(call.message.chat.id, "")
-    dbWorker.set_without_formating(call.message.chat.id, "")
+def clear_lsts(chatId):
+    dbWorker.set_last_list(chatId, "")
+    dbWorker.set_last_urls_list(chatId, "")
+    dbWorker.set_urls(chatId, "")
+    dbWorker.set_without_formating(chatId, "")
     return
 ##########________Отредактировано
 @dp.callback_query_handler(lambda call: call.data in ["RU", "EN", "ES"])
@@ -467,6 +487,14 @@ async def select_sound(call: aiogram.types.CallbackQuery):
         await bot.send_audio(call.message.chat.id, audio = val,
                              caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
 
+
+@bot.message_handler(content_types=['voice','text'])
+def repeat_all_message(message):
+  file_info = bot.get_file(message.voice.file_id)
+  file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(token, file_info.file_path))
+
+  with open(str(message.chat.id) + '_voice.ogg','wb') as f:
+    f.write(file.content)
 
 #def update_users_write():
 #    with open('users.json', 'w') as write_users:

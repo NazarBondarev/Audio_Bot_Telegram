@@ -167,13 +167,16 @@ def get_favorites(chatId, cur):
     cur.execute("SELECT * FROM `FAVOURITES` WHERE CHATID = {0} ".format(chatId))
     rows = cur.fetchall()
     cur.close()
+    favorites_lst = []
     favorites = {}
     for row in rows:
-        favorites.setdefault(row['NAME'], row['HASHE'])
+        favorites = { row['NAME']: row['FILE_ID'] }
+        favorites_lst.append(dict(favorites))
+
     if rows == ():
         return None
     else:
-        return favorites
+        return favorites_lst
 
 @connect
 def get_favorites_ident(chatId, cur):
@@ -182,7 +185,7 @@ def get_favorites_ident(chatId, cur):
     cur.close()
     favorites = {}
     for row in rows:
-        favorites.setdefault(row['NAME'], row['KEY_ID'])
+        favorites.setdefault(row['NAME'], row['FILE_ID'])
     if rows == ():
         return None
     else:
@@ -190,7 +193,7 @@ def get_favorites_ident(chatId, cur):
 
 @connect
 def add_new_favorites(chatId, name, fileId, cur):
-    cur.execute("INSERT INTO `FAVOURITES` (`CHATID`, `NAME`, `FILE_ID`)  VALUES ({0},'{1}', '{2}')".format(userId, name, fileId))
+    cur.execute("INSERT INTO `FAVOURITES` (`CHATID`, `NAME`, `FILE_ID`)  VALUES ({0},'{1}', '{2}')".format(chatId, name, fileId))
     connection.commit()
     cur.close()
     return

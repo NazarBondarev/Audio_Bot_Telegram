@@ -100,7 +100,7 @@ class Keyboards:
 
     def like_unlike_keyboard(self, status):
         self.status = status
-        if self.status == "On":
+        if self.status == 1:
             like = types.InlineKeyboardButton(text="❤️", callback_data="like")
             close = types.InlineKeyboardButton(
                 text="❌", callback_data=f"close")
