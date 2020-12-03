@@ -495,6 +495,10 @@ async def repeat_all_message(message):
   result = requests.post('https://api.audd.io/', data=data)
 
   myjson = json.loads(result.content.decode('utf-8'))
+  
+  if myjson['result'] == None:
+      await bot.send_message(message.chat.id,  'К сожалению ничего не найдено.')
+      return
   name = myjson['result']['artist'] + ": " + myjson['result']['title']
   
   global number_page_message, you_in_first_page
