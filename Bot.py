@@ -8,8 +8,8 @@ import os
 import aiogram
 import asyncio
 import json
-
-
+import requests
+import urllib
 
 bot = aiogram.Bot(token =  config.API_TOKEN,
                   parse_mode = aiogram.types.ParseMode.HTML)
@@ -198,7 +198,8 @@ def string_to_listDict(mystr):
             buffer_pages.append(dict(buffer_dic))
         except:
             continue
-        
+    if len(list_dic) == 0 or list_dic[len(list_dic) - 1] != buffer_pages:
+         list_dic.append(list(buffer_pages))
     return list_dic
 
 
@@ -220,19 +221,13 @@ async def select_sound(call: aiogram.types.CallbackQuery):
     _duration = with_form[page][song_num]["duration"]
 
 
-    slen = len(song) 
-
-    with open('test.mp3', 'w') as write_users:
-        write_users.write(song)
-    bitr = slen / get_duration(_duration)
-
-    
+ 
    
 
     keyb =  keyboards.Keyboards().like_unlike_keyboard(  dbWorker.get_param(call.message.chat.id, 'HEARTS_BUTTONS'))
     msg = await bot.send_audio(call.message.chat.id, audio = song, title = f"{name} - {song_name}",
-                               performer = song_name, duration = 0,
-                               caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>   bitrait = ', reply_markup = keyb)
+                               performer = song_name,
+                               caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
 
 
 def get_duration(_duration):
@@ -488,14 +483,61 @@ async def select_sound(call: aiogram.types.CallbackQuery):
                              caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
 
 
-@bot.message_handler(content_types=['voice','text'])
-def repeat_all_message(message):
-  file_info = bot.get_file(message.voice.file_id)
-  file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(token, file_info.file_path))
+@dp.message_handler(content_types=['voice','text'])
+async def repeat_all_message(message):
+  file_info = await bot.get_file(message.voice.file_id)
+  data = {
+    'url': 'https://api.telegram.org/file/bot{0}/{1}'.format(config.API_TOKEN, file_info.file_path),
+    'return': 'apple_music,spotify',
+    'api_token': 'a156ca037963da105e3a7e37896a82ce'
+    }
 
-  with open(str(message.chat.id) + '_voice.ogg','wb') as f:
-    f.write(file.content)
+  result = requests.post('https://api.audd.io/', data=data)
 
+  myjson = json.loads(result.content.decode('utf-8'))
+  name = myjson['result']['artist'] + ": " + myjson['result']['title']
+  
+  global number_page_message, you_in_first_page
+  lng = dbWorker.get_param(message.chat.id, 'LANGUAGE')
+  results_count = dbWorker.get_param(message.chat.id, 'RESULTS_COUNT')
+  
+  song_list, urls_list, without_formating = SongsDownloader( f"{name}").get_songs_list(results_count)
+  
+  song_list = replacer(song_list, "0:", "")
+  
+  
+  you_in_first_page =  messages.you_in_first_page_message[lng]
+  number_page_message =  messages.number_page_message[lng]
+  
+  
+  if song_list == "NoSongs" and urls_list == "NoSongs":
+      await bot.send_message(message.chat.id,  messages.nothing_messages[lng])
+  elif not song_list and not urls_list:
+      pass
+  else:
+      
+  
+      list_len = len(dbWorker.get_param(message.chat.id, 'LAST_LIST'))  # Длинна списка
+  
+      keyb =  keyboards.Keyboards().for_songs_list(urls_list[0],
+                                                   message.chat.id,
+                                                   dbWorker.get_param(message.chat.id, 'RESULTS_COUNT'))
+  
+      await bot.send_message(message.chat.id, number_page_message.format("1", str(list_len)) + '\n'.join(song_list[0]), reply_markup = keyb)
+  
+      dbWorker.set_last_list(message.chat.id, lst_to_str(song_list).replace("'", "`"))  # Списки песен
+      dbWorker.set_urls(message.chat.id, lst_to_str(urls_list).replace("'", "`")) # Списки ссылок на песни
+  
+      dbWorker.set_without_formating(message.chat.id, dict_to_str(without_formating).replace("'", "`"))
+     
+      
+      
+      dbWorker.set_last_page(message.chat.id, 0) # Последняя страница
+      # Последний список ссылок на песни
+      dbWorker.set_last_urls_page(message.chat.id, 0)
+  
+
+    
 #def update_users_write():
 #    with open('users.json', 'w') as write_users:
 #        json.dump(users, write_users, ensure_ascii = False, indent = 4)
