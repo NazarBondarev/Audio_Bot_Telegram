@@ -116,7 +116,7 @@ async def search_song(message: aiogram.types.Message):
                                                      message.chat.id,
                                                      dbWorker.get_param(message.chat.id, 'RESULTS_COUNT'))
 
-        await bot.send_message(message.chat.id, number_page_message.format("1", str(list_len)) + '\n'.join(song_list[0]), reply_markup = keyb)
+        await bot.send_message(message.chat.id, number_page_message.format("1", str(len(song_list))) + '\n'.join(song_list[0]), reply_markup = keyb)
 
         dbWorker.set_last_list(message.chat.id, lst_to_str(song_list).replace("'", "`"))  # Списки песен
         dbWorker.set_urls(message.chat.id, lst_to_str(urls_list).replace("'", "`")) # Списки ссылок на песни
@@ -527,7 +527,7 @@ async def repeat_all_message(message):
                                                    message.chat.id,
                                                    dbWorker.get_param(message.chat.id, 'RESULTS_COUNT'))
   
-      await bot.send_message(message.chat.id, number_page_message.format("1", str(list_len)) + '\n'.join(song_list[0]), reply_markup = keyb)
+      await bot.send_message(message.chat.id, number_page_message.format("1", str(len(song_list))) + '\n'.join(song_list[0]), reply_markup = keyb)
   
       dbWorker.set_last_list(message.chat.id, lst_to_str(song_list).replace("'", "`"))  # Списки песен
       dbWorker.set_urls(message.chat.id, lst_to_str(urls_list).replace("'", "`")) # Списки ссылок на песни
