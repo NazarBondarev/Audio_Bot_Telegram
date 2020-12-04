@@ -215,6 +215,8 @@ async def select_sound(call: aiogram.types.CallbackQuery):
     name = with_form[page][song_num]["artist"]
     song_name = with_form[page][song_num]["title"]
 
+   
+
     urls = string_to_list(dbWorker.get_param(call.message.chat.id, 'URLS'))
 
     song = SongsDownloader().download_song(  urls[page][song_num])
@@ -222,11 +224,11 @@ async def select_sound(call: aiogram.types.CallbackQuery):
 
 
  
-   
+    _title = ''.join(with_form[page][song_num]["artist"]) + ' - ' + ''.join(with_form[page][song_num]["title"])
 
     keyb =  keyboards.Keyboards().like_unlike_keyboard(  dbWorker.get_param(call.message.chat.id, 'HEARTS_BUTTONS'))
-    msg = await bot.send_audio(call.message.chat.id, audio = song, title = f"{name} - {song_name}",
-                               performer = song_name,
+    msg = await bot.send_audio(call.message.chat.id, audio = song, title = _title,
+                               performer = '',
                                caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
 
 
