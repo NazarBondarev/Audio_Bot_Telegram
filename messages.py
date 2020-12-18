@@ -134,3 +134,14 @@ settings_menu = {
     "ES": "Menú de configuración"
 }
 
+Not_found = {
+    "RU": "Не найдено",
+    "EN": "Not found",
+    "ES": "Extraviado"
+}
+
+failed_to_load = {
+    "RU": "Не удалось загрузить",
+    "EN": "Failed to load",
+    "ES": "Falló al cargar"
+}

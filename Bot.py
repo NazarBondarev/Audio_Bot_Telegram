@@ -11,6 +11,7 @@ import json
 import requests
 import urllib
 
+
 bot = aiogram.Bot(token =  config.API_TOKEN,
                   parse_mode = aiogram.types.ParseMode.HTML)
 loop = asyncio.get_event_loop()
@@ -94,40 +95,43 @@ async def search_song(message: aiogram.types.Message):
     lng = dbWorker.get_param(message.chat.id, 'LANGUAGE')
     results_count = dbWorker.get_param(message.chat.id, 'RESULTS_COUNT')
 
-    song_list, urls_list, without_formating = SongsDownloader( f"{message.text}").get_songs_list(results_count)
+    try:
+        song_list, urls_list, without_formating = SongsDownloader( f"{message.text}").get_songs_list(results_count)
    
-    song_list = replacer(song_list, "0:", "")
-    
-
-    you_in_first_page =  messages.you_in_first_page_message[lng]
-    number_page_message =  messages.number_page_message[lng]
-
-
-    if song_list == "NoSongs" and urls_list == "NoSongs":
-        await bot.send_message(message.chat.id,  messages.nothing_messages[lng])
-    elif not song_list and not urls_list:
-        pass
-    else:
+        song_list = replacer(song_list, "0:", "")
         
 
-        list_len = len(dbWorker.get_param(message.chat.id, 'LAST_LIST'))  # Длинна списка
+        you_in_first_page =  messages.you_in_first_page_message[lng]
+        number_page_message =  messages.number_page_message[lng]
 
-        keyb =  keyboards.Keyboards().for_songs_list(urls_list[0],
-                                                     message.chat.id,
-                                                     dbWorker.get_param(message.chat.id, 'RESULTS_COUNT'))
 
-        await bot.send_message(message.chat.id, number_page_message.format("1", str(len(song_list))) + '\n'.join(song_list[0]), reply_markup = keyb)
+        if song_list == "NoSongs" and urls_list == "NoSongs":
+            await bot.send_message(message.chat.id,  messages.nothing_messages[lng])
+        elif not song_list and not urls_list:
+            pass
+        else:
+            
 
-        dbWorker.set_last_list(message.chat.id, lst_to_str(song_list).replace("'", "`"))  # Списки песен
-        dbWorker.set_urls(message.chat.id, lst_to_str(urls_list).replace("'", "`")) # Списки ссылок на песни
+            list_len = len(dbWorker.get_param(message.chat.id, 'LAST_LIST'))  # Длинна списка
 
-        dbWorker.set_without_formating(message.chat.id, dict_to_str(without_formating).replace("'", "`"))
-       
-        
-        
-        dbWorker.set_last_page(message.chat.id, 0) # Последняя страница
-        # Последний список ссылок на песни
-        dbWorker.set_last_urls_page(message.chat.id, 0)
+            keyb =  keyboards.Keyboards().for_songs_list(urls_list[0],
+                                                         message.chat.id,
+                                                         dbWorker.get_param(message.chat.id, 'RESULTS_COUNT'))
+
+            await bot.send_message(message.chat.id, number_page_message.format("1", str(len(song_list))) + '\n'.join(song_list[0]), reply_markup = keyb)
+
+            dbWorker.set_last_list(message.chat.id, lst_to_str(song_list).replace("'", "`"))  # Списки песен
+            dbWorker.set_urls(message.chat.id, lst_to_str(urls_list).replace("'", "`")) # Списки ссылок на песни
+
+            dbWorker.set_without_formating(message.chat.id, dict_to_str(without_formating).replace("'", "`"))
+           
+            
+            
+            dbWorker.set_last_page(message.chat.id, 0) # Последняя страница
+            # Последний список ссылок на песни
+            dbWorker.set_last_urls_page(message.chat.id, 0)
+    except:
+        await bot.send_message(message.chat.id, messages.Not_found[lng])
 
 def string_to_list(mystr):
     return_lst = []
@@ -212,24 +216,27 @@ async def select_sound(call: aiogram.types.CallbackQuery):
     page = dbWorker.get_param(call.message.chat.id, 'LAST_PAGE')
 
     with_form = string_to_listDict(dbWorker.get_param(call.message.chat.id, 'WITHOUT_FORMATING'))
-    name = with_form[page][song_num]["artist"]
-    song_name = with_form[page][song_num]["title"]
+    try:
+        name = with_form[page][song_num]["artist"]
+        song_name = with_form[page][song_num]["title"]
 
    
 
-    urls = string_to_list(dbWorker.get_param(call.message.chat.id, 'URLS'))
+        urls = string_to_list(dbWorker.get_param(call.message.chat.id, 'URLS'))
 
-    song = SongsDownloader().download_song(  urls[page][song_num])
-    _duration = with_form[page][song_num]["duration"]
+        song = SongsDownloader().download_song(  urls[page][song_num])
+        _duration = with_form[page][song_num]["duration"]
 
 
  
-    _title = ''.join(with_form[page][song_num]["artist"]) + ' - ' + ''.join(with_form[page][song_num]["title"])
+        _title = ''.join(with_form[page][song_num]["artist"]) + ' - ' + ''.join(with_form[page][song_num]["title"])
 
-    keyb =  keyboards.Keyboards().like_unlike_keyboard(  dbWorker.get_param(call.message.chat.id, 'HEARTS_BUTTONS'))
-    msg = await bot.send_audio(call.message.chat.id, audio = song, title = _title,
-                               performer = '',
-                               caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
+        keyb =  keyboards.Keyboards().like_unlike_keyboard(  dbWorker.get_param(call.message.chat.id, 'HEARTS_BUTTONS'))
+        msg = await bot.send_audio(call.message.chat.id, audio = song, title = _title,
+                                   performer = '',
+                                   caption = '<a href="https://t.me/dbas_music_bot">🎧DBAS Music</a>', reply_markup = keyb)
+    except:
+        await bot.send_message(call.message.chat.id, messages.failed_to_load[dbWorker.get_param(message.chat.id, 'LANGUAGE')])
 
 
 def get_duration(_duration):
